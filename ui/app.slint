@@ -1,0 +1,157 @@
+import { Button, VerticalBox, HorizontalBox, LineEdit, ProgressIndicator, GroupBox } from "std-widgets.slint";
+
+export struct FileEntry {
+    filename: string,
+    file_id: string,
+    upload_date: string,
+    size: string,
+}
+
+export component AppWindow inherits Window {
+    title: "Telegram Cloud Storage";
+    preferred-width: 800px;
+    preferred-height: 600px;
+
+    in-out property <string> status-text: "Ready";
+    in-out property <string> selected-file: "No file selected";
+    in-out property <bool> is-uploading: false;
+    in-out property <float> upload-progress: 0.0;
+    in-out property <[FileEntry]> uploaded-files: [];
+    in-out property <bool> is-authenticated: false;
+    in-out property <string> phone-number: "";
+
+    callback select-file();
+    callback upload-file();
+    callback authenticate(string);
+    callback refresh-files();
+
+    VerticalBox {
+        padding: 20px;
+        spacing: 15px;
+
+        // Authentication Section
+        if !is-authenticated: GroupBox {
+            title: "Authentication";
+            VerticalBox {
+                spacing: 10px;
+                
+                Text {
+                    text: "Enter your phone number (with country code):";
+                    font-size: 14px;
+                }
+                
+                HorizontalBox {
+                    spacing: 10px;
+                    
+                    LineEdit {
+                        text <=> phone-number;
+                    }
+                    
+                    Button {
+                        text: "Connect";
+                        enabled: phone-number != "";
+                        clicked => {
+                            authenticate(phone-number);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Upload Section
+        if is-authenticated: GroupBox {
+            title: "Upload File";
+            VerticalBox {
+                spacing: 10px;
+                
+                HorizontalBox {
+                    spacing: 10px;
+                    
+                    Button {
+                        text: "Select File";
+                        enabled: !is-uploading;
+                        clicked => {
+                            select-file();
+                        }
+                    }
+                    
+                    Text {
+                        text: selected-file;
+                        vertical-alignment: center;
+                        horizontal-alignment: left;
+                    }
+                }
+                
+                Button {
+                    text: is-uploading ? "Uploading..." : "Upload to Telegram";
+                    enabled: !is-uploading && selected-file != "No file selected";
+                    clicked => {
+                        upload-file();
+                    }
+                }
+                
+                if is-uploading: VerticalBox {
+                    spacing: 5px;
+                    
+                    ProgressIndicator {
+                        progress: upload-progress;
+                    }
+                    
+                    Text {
+                        text: "Progress: " + round(upload-progress * 100) + "%";
+                        horizontal-alignment: center;
+                    }
+                }
+            }
+        }
+
+        // Status Section
+        if is-authenticated: GroupBox {
+            title: "Status";
+            Text {
+                text: status-text;
+                wrap: word-wrap;
+            }
+        }
+
+        // Uploaded Files Section
+        if is-authenticated: GroupBox {
+            title: "Uploaded Files";
+            VerticalBox {
+                spacing: 10px;
+                
+                Button {
+                    text: "Refresh";
+                    clicked => {
+                        refresh-files();
+                    }
+                }
+                
+                VerticalBox {
+                    height: 200px;
+                    
+                    for file in uploaded-files: HorizontalBox {
+                        spacing: 10px;
+                        padding: 5px;
+                        
+                        VerticalBox {
+                            Text {
+                                text: file.filename;
+                                font-weight: 700;
+                            }
+                            Text {
+                                text: "Size: " + file.size + " | Date: " + file.upload-date;
+                                font-size: 11px;
+                            }
+                            Text {
+                                text: "ID: " + file.file-id;
+                                font-size: 10px;
+                                color: #666;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
